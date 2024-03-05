@@ -35,8 +35,8 @@
 #define     REF_GAME(G)         drawGameBox((G)); refresh();
 /* Where L is the level */
 #define     GSPEED(L)           ((L)->level <= MAX_SPEED_LEVEL ? CLOCKS_PER_SEC / (L)->level : CLOCKS_PER_SEC / MAX_SPEED_LEVEL)
-/* Where X is previous color */
-#define     NCOLOR(X)           ((X) >= 4 ? 1 : (X)+1)
+/* Where C is previous color */
+#define     NCOLOR(C)           ((C) >= 4 ? 1 : (C)+1)
 
 #define     POINTS_POS          4
 #define     NEXT_POS            -10
@@ -101,6 +101,8 @@ struct Game {
 static void drawMenu(WINDOW * menuwin, Menu menu);
 static void runGame(Game *game);
 static void drawGameBox(Game *game);
+static void drawGameStatus(Game *game);
+static void drawTetromino(WINDOW * win, Tetromino t, int y, int x);
 static Menu startMenu(WINDOW * menuwin);
 static Game * createGame(WINDOW * gwin);
 static WINDOW * drawGameWindow();
@@ -263,7 +265,7 @@ void descendRows(Game *game, int sr) {
     }
 }
 
-/* Delete all rows that are full */
+/* Delete all rows that are full and updates the game structure */
 void deleteFullRows(Game *game) {
     
     int r, c;
@@ -291,19 +293,6 @@ void deleteFullRows(Game *game) {
     game->lines += dl;
     game->level = (int)((game->lines / 10) + 1);
     }
-}
-
-void goDown(Game *game) {
-    if (checkMove(game, 0, 1))
-        moveTetromino(game, 0, 1);
-    else
-        placeTetromino(game);
-}
-
-/* Places the current selected tetromino on the lowest possible row */
-void descendTetromino(Game *game) {
-    while (checkMove(game, 0, 1))
-        moveTetromino(game, 0, 1);
 }
 
 /* Shows the current tetromino placed and refreshes the screen */
@@ -487,12 +476,10 @@ void moveTetromino(Game *game, int h, int v) {
     /* Get the color */
     color = *game->selblocks[0].ptr;
     /* Delete all current selected blocks */
-    for (i = 0; i <= 3; i++) {
+    for (i = 0; i <= 3; i++)
         *game->selblocks[i].ptr = COLOR_BLACK;
-    }
     /* Color all the next blocks */
     for (i = 0; i <= 3; i++) {
-
         c = game->selblocks[i].c;
         r = game->selblocks[i].r;
         game->blocks[c + h][r + v] = color;
@@ -500,6 +487,7 @@ void moveTetromino(Game *game, int h, int v) {
     }
 }
 
+/* Initializes the color pairs that are going to be used */
 void initColorPairs() {
     int colors[] = { COLOR_BLACK, COLOR_RED, COLOR_CYAN, COLOR_YELLOW, COLOR_GREEN, COLOR_WHITE };
     for (int i = 0; i < 6; i++){
@@ -510,6 +498,7 @@ void initColorPairs() {
     }
 }
 
+/* Draws a tetromino on a window in certain coordinates */
 void drawTetromino(WINDOW * win, Tetromino t, int y, int x){
     int blocks[4][4];
     int c, r;
@@ -533,14 +522,15 @@ void drawTetromino(WINDOW * win, Tetromino t, int y, int x){
                             BOX_CHAR | COLOR_PAIR(blocks[c][r]));
 }
 
+/* Clears all characters on the window */
 void clearwin(WINDOW * win){
     for (int r = 1;r < win->_maxy; r++) 
         for (int c = 1;c < win->_maxx; c++) 
             mvwaddch(win, r, c, ' ');
 }
 
+/* Draws the status of the game's menu */
 void drawGameStatus(Game * game) {
-
     /* Show points */
     char buf[30];
     sprintf(buf, "Points: %i", game->points);
@@ -557,12 +547,7 @@ void drawGameStatus(Game * game) {
     wrefresh(game->menuwin);
 }
 
-void destroy_win(WINDOW *local_win) {	
-	wborder(local_win, ' ', ' ', ' ',' ',' ',' ',' ',' ');
-	wrefresh(local_win);
-	delwin(local_win);
-}
-
+/* Create a new window */
 WINDOW *create_newwin(int height, int width, int starty, int startx) {
     WINDOW *local_win;
 
@@ -574,6 +559,7 @@ WINDOW *create_newwin(int height, int width, int starty, int startx) {
 	return local_win;
 }
 
+/* Draws the menu when the game isn't being played */
 void drawMenu(WINDOW * menuwin, Menu menu) {
     char selopt[15];
     char opt[15];
@@ -636,8 +622,7 @@ drawGameWindow() {
 }
 
 /* Creates the a window for the menu */
-WINDOW *
-drawMenuWindow() {
+WINDOW * drawMenuWindow() {
     WINDOW *my_win;
 
     int startx, starty, width, height;
@@ -652,8 +637,7 @@ drawMenuWindow() {
 }
 
 /* Initializes the game structure */
-Game *
-createGame(WINDOW * gwin) {
+Game * createGame(WINDOW * gwin) {
 
     static Game game;
     Tetromino tet;
@@ -682,30 +666,10 @@ createGame(WINDOW * gwin) {
     return (&game);
 }
 
-/*
-void debugGame(Game *game) {
-    for (int a = 1; a <= GAME_BLOCK_HEIGHT; a++){
-        for (int i = 1; i <= GAME_BLOCK_WIDTH; i++)
-            printf("%i ", game->blocks[i][a]);
-        printf("\n");
-    }
-    for (int i = 0; i < 4;i++) {
-        printf("r:%i c:%i\n", game->selblocks[i].r, game->selblocks[i].c);
-    }
-    printf("Nt type:%i\n", game->nt.type);
-    for (int i = 1; i <= GAME_BLOCK_WIDTH; i++) {
-        printf("canSpawn (nt):%i\n", canSpawn(game, game->nt, i));
-    }
-    printf("canhold:%i\n", game->canhold);
-}
-*/
-
 void runGame(Game * game) {
     int c, d;
     int nmovemax = 0;
-    char pointsstr[20];  
-    char levelstr[15];  
-    char linesstr[15];  
+    char pointsstr[20], levelstr[15], linesstr[15];  
     trySpawn(game, game->nt);
     showTetromino(game);
     game->timer = clock() + GSPEED(game);
@@ -865,7 +829,6 @@ main(int argc, char *argv[]) {
     /* Initialize the menu */
     menu_window = drawMenuWindow();
     menu = startMenu(menu_window);
-    wmove(stdscr, LINES, 0);
     drawMenu(menu_window, menu);
     wrefresh(menu_window);
     refresh();
