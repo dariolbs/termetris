@@ -542,7 +542,7 @@ void drawGameStatus(Game * game) {
     mvwaddstr(game->menuwin, game->menuwin->_maxy - 12, 5, "Holding:");
     drawTetromino(game->menuwin, game->oh, game->menuwin->_maxy - 8, 9);
     /* Show next tetromino */
-    mvwaddstr(game->menuwin, game->menuwin->_maxy - 23, 5, "Next tetromino:");
+    mvwaddstr(game->menuwin, game->menuwin->_maxy - 23, 5, "Next:");
     drawTetromino(game->menuwin, game->nt, game->menuwin->_maxy - 20, 9);
     wrefresh(game->menuwin);
 }
