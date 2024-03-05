@@ -16,6 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA. */
 
+#include <curses.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -36,6 +37,10 @@
 #define     GSPEED(L)           ((L)->level <= MAX_SPEED_LEVEL ? CLOCKS_PER_SEC / (L)->level : CLOCKS_PER_SEC / MAX_SPEED_LEVEL)
 /* Where X is previous color */
 #define     NCOLOR(X)           ((X) >= 4 ? 1 : (X)+1)
+
+#define     POINTS_POS          4
+#define     NEXT_POS            -10
+#define     HOLD_POS            -20
 
 typedef struct Tblock Tblock;
 typedef struct Tetromino Tetromino;
@@ -78,8 +83,8 @@ struct Tblock {
 };
 
 struct Game {
-    WINDOW * gamewin;
-    WINDOW * ntwin;         /* Window to show the next tetromino */
+    WINDOW * win;           /* Window of the game */
+    WINDOW * menuwin;       /* Window of the menu */
     int blocks[GAME_BLOCK_WIDTH + 1][GAME_BLOCK_HEIGHT + 1];
     Tblock selblocks[4];    /* Current selected blocks */
     Tetromino nt;           /* Next tetromino */
@@ -185,7 +190,7 @@ void spawnTetromino(Game *game, Tetromino t, int sp) {
         game->selblocks[i].center = &game->selblocks[T_CEN(t)];
     }
     game->ct = t;
-    wrefresh(game->gamewin);
+    wrefresh(game->win);
 }
 
 /* Tries to spawn a tetrmono in all positions */
@@ -505,6 +510,59 @@ void initColorPairs() {
     }
 }
 
+void drawTetromino(WINDOW * win, Tetromino t, int y, int x){
+    int blocks[4][4];
+    int c, r;
+
+    for (int i = 0; i < 4; i++)
+        for (int b = 0; b < 4; b++)
+            blocks[i][b] = COLOR_BLACK;
+
+    if (t.type != NONE){
+        for (int i = 0; i < 4; i++) {
+            c = T_COL(t, i) + 1;
+            r = T_ROW(t, i) - 1;
+            blocks[c][r] = t.color;
+        }
+    }
+    for (int c = 0; c < 4; c++)
+        for (int r = 0; r < 4; r++)
+            for ( int i = 0; i <= 1; i++)
+                for (int a = 0; a <= 3; a++)
+                    mvwaddch(win, (r * 2 - i) + y, (c * 4 - a) + x,
+                            BOX_CHAR | COLOR_PAIR(blocks[c][r]));
+}
+
+void clearwin(WINDOW * win){
+    for (int r = 1;r < win->_maxy; r++) 
+        for (int c = 1;c < win->_maxx; c++) 
+            mvwaddch(win, r, c, ' ');
+}
+
+void drawGameStatus(Game * game) {
+
+    /* Show points */
+    char buf[30];
+    sprintf(buf, "Points: %i", game->points);
+    mvwaddstr(game->menuwin, 2, 5, buf);
+    /* Show level */
+    sprintf(buf, "Level: %i", game->level);
+    mvwaddstr(game->menuwin, 4, 5, buf);
+    /* Show tetromino on hold */
+    mvwaddstr(game->menuwin, game->menuwin->_maxy - 12, 5, "Holding:");
+    drawTetromino(game->menuwin, game->oh, game->menuwin->_maxy - 8, 9);
+    /* Show next tetromino */
+    mvwaddstr(game->menuwin, game->menuwin->_maxy - 23, 5, "Next tetromino:");
+    drawTetromino(game->menuwin, game->nt, game->menuwin->_maxy - 20, 9);
+    wrefresh(game->menuwin);
+}
+
+void destroy_win(WINDOW *local_win) {	
+	wborder(local_win, ' ', ' ', ' ',' ',' ',' ',' ',' ');
+	wrefresh(local_win);
+	delwin(local_win);
+}
+
 WINDOW *create_newwin(int height, int width, int starty, int startx) {
     WINDOW *local_win;
 
@@ -556,13 +614,13 @@ Menu startMenu(WINDOW * menuwin) {
 
 /* Draws the game box based on the block matrice */
 void drawGameBox(Game *game) {
-    for (int r = 1; r <= GAME_BLOCK_WIDTH; r++)
-        for (int c = 1; c <= GAME_BLOCK_HEIGHT; c++)
+    for (int c = 1; c <= GAME_BLOCK_WIDTH; c++)
+        for (int r = 1; r <= GAME_BLOCK_HEIGHT; r++)
             for ( int i = 0; i <= 1; i++)
                 for (int a = 0; a <= 3; a++)
-                    mvwaddch(game->gamewin, c * 2 - i, r * 4 - a,
-                            BOX_CHAR | COLOR_PAIR(game->blocks[r][c]));
-    wrefresh(game->gamewin);
+                    mvwaddch(game->win, r * 2 - i, c * 4 - a,
+                            BOX_CHAR | COLOR_PAIR(game->blocks[c][r]));
+    wrefresh(game->win);
 }
 
 /* Creates the a window for the game */
@@ -600,7 +658,7 @@ createGame(WINDOW * gwin) {
     static Game game;
     Tetromino tet;
 
-    game.gamewin = gwin;
+    game.win = gwin;
     game.canhold = 1;
     game.level = 1;
     game.lines = 0;
@@ -652,10 +710,14 @@ void runGame(Game * game) {
     showTetromino(game);
     game->timer = clock() + GSPEED(game);
     game->groundtimer = clock();
+    game->nt = gentetromino(game->ct);
+    clearwin(game->menuwin);
+    drawGameStatus(game);
+    refresh();
 
-    int io = 0;         /* The game is over */
+    int io = 0;         /* If the game is over */
 
-    while ((c = wgetch(game->gamewin)) != 'q' && !io && c != 27) {
+    while ((c = wgetch(game->win)) != 'q' && !io && c != 27) {
         if ( c == ERR ){
             /* The user isn't pressing any key */
             if (clock() > game->timer){
@@ -668,13 +730,15 @@ void runGame(Game * game) {
                 else if (clock() > game->groundtimer){
                     placeTetromino(game);
                     deleteFullRows(game);
-                    game->nt = gentetromino(game->ct);
                     trySpawn(game, game->nt);
+                    game->ct = game->nt;
+                    game->nt = gentetromino(game->ct);
                     game->canhold = 1;
                     if (!(io = isOver(game, game->nt)))
                         showTetromino(game);
                     game->timer = clock() + GSPEED(game);
                     updateDowntime(game);
+                    drawGameStatus(game);
                 }
             }
         } else {
@@ -706,14 +770,17 @@ void runGame(Game * game) {
                 /* Placing a tetromino */
                 placeTetromino(game);
                 deleteFullRows(game);
-                game->nt = gentetromino(game->ct);
                 if (!(io = isOver(game, game->nt)))
                     trySpawn(game, game->nt);
+                game->ct = game->nt;
+                game->nt = gentetromino(game->ct);
                 game->canhold = 1;
+                drawGameStatus(game);
                 break;
             case 'c':
                 if (!isOver(game, game->oh))
                     putOnHold(game);
+                drawGameStatus(game);
                 break;
             case 'z':
             case 'x':
@@ -735,18 +802,18 @@ void runGame(Game * game) {
             game->blocks[i][a] =  COLOR_BLACK;
 
     drawGameBox(game);
-    wattron(game->gamewin, A_BOLD | COLOR_PAIR(11));
-    mvwaddstr(game->gamewin, 19, 17, "Game Over");
-    wattroff(game->gamewin, A_BOLD | COLOR_PAIR(11));
-
+    wattron(game->win, A_BOLD | COLOR_PAIR(11));
+    mvwaddstr(game->win, 19, 17, "Game Over");
+    wattroff(game->win, A_BOLD | COLOR_PAIR(11));
     sprintf(pointsstr, "Points: %i", game->points);
-    mvwaddstr(game->gamewin, 20, 17, pointsstr);
+    mvwaddstr(game->win, 20, 17, pointsstr);
     sprintf(levelstr, "Level: %i", game->level);
-    mvwaddstr(game->gamewin, 21, 17, levelstr);
+    mvwaddstr(game->win, 21, 17, levelstr);
     sprintf(linesstr, "Lines: %i", game->lines);
-    mvwaddstr(game->gamewin, 22, 17, linesstr);
+    mvwaddstr(game->win, 22, 17, linesstr);
 
-    wrefresh(game->gamewin);
+    clearwin(game->menuwin);
+    wrefresh(game->win);
     refresh();
 }
 
@@ -761,15 +828,9 @@ resizeHandler() {
     }
     menu_window = drawMenuWindow();
     drawMenu(menu_window, menu);
-    box(game->gamewin, 0,0);
+    box(game->win, 0,0);
     drawGameBox(game);
     refresh();
-}
-
-void
-safeExit(int r) {
-    endwin();
-    exit(r);
 }
 
 int 
@@ -812,8 +873,9 @@ main(int argc, char *argv[]) {
     /* Initializes the game */
     game_window = drawGameWindow();
     game = createGame(game_window);
-    nodelay(game->gamewin, TRUE);   /* Don't wait for user input when playing the game */
-    keypad(game->gamewin, TRUE);    /* Enable the capture of special keystrokes (such as arrow keys) */
+    game->menuwin = menu_window;
+    nodelay(game->win, TRUE);   /* Don't wait for user input when playing the game */
+    keypad(game->win, TRUE);    /* Enable the capture of special keystrokes (such as arrow keys) */
 
     /* Menu selection */
     int c;
@@ -826,6 +888,9 @@ main(int argc, char *argv[]) {
             menu.sel = 2;
             drawMenu(menu_window, menu);
             refresh();
+        } else if (c == 'p') {
+            drawGameStatus(game);
+            refresh();
         } else if (c == KEY_RESIZE){
             resizeHandler();
         } else if (c == 10){
@@ -834,16 +899,17 @@ main(int argc, char *argv[]) {
                 drawMenu(menu_window, menu);
                 runGame(game);
                 /* Restrat the game */
-                game = createGame(game->gamewin);
+                game = createGame(game->win);
                 menu.sel = 1;
                 drawMenu(menu_window, menu);
                 refresh();
             }
             else if (menu.sel == 2){
-                safeExit(0);
+                endwin();
+                exit(0);
             }
         }
     }
-    safeExit(1);
-
+    endwin();
+    exit(0);
 }
