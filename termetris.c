@@ -24,7 +24,6 @@
 #include <ncurses.h>
 #include <time.h>
 
-
 #define     MINLINES            38
 #define     MINCOLS             82
 #define     GAME_BLOCK_HEIGHT   18
