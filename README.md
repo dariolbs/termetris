@@ -1,13 +1,13 @@
 # termetris
 A simple tetris game in C using the curses library
 
-# compile
+## compile
 ```
 sudo make install
 ```
 Obviously, make is required to build.
 
-# execute
+## execute
 ```
 termetris
 ```
