@@ -21,7 +21,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
-#include <ncurses.h>
 #include <time.h>
 
 #define     MINLINES            38
@@ -609,8 +608,7 @@ void drawGameBox(Game *game) {
 }
 
 /* Creates the a window for the game */
-WINDOW *
-drawGameWindow() {
+WINDOW * drawGameWindow() {
     WINDOW *my_win;
     int width, height;
 	height = GAME_BLOCK_HEIGHT * 2 + 2;
@@ -780,8 +778,7 @@ void runGame(Game * game) {
     refresh();
 }
 
-void
-resizeHandler() {
+void resizeHandler() {
     endwin();
     refresh();
 
@@ -796,8 +793,7 @@ resizeHandler() {
     refresh();
 }
 
-int 
-main(int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
     initscr();  /* Initialize curse's main source */
 
     if (!has_colors()){
