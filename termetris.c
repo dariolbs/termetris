@@ -504,14 +504,12 @@ void drawTetromino(WINDOW * win, Tetromino t, int y, int x){
     for (int i = 0; i < 4; i++)
         for (int b = 0; b < 4; b++)
             blocks[i][b] = COLOR_BLACK;
-
-    if (t.type != NONE){
+    if (t.type != NONE)
         for (int i = 0; i < 4; i++) {
             c = T_COL(t, i) + 1;
             r = T_ROW(t, i) - 1;
             blocks[c][r] = t.color;
         }
-    }
     for (int c = 0; c < 4; c++)
         for (int r = 0; r < 4; r++)
             for ( int i = 0; i <= 1; i++)
@@ -520,7 +518,7 @@ void drawTetromino(WINDOW * win, Tetromino t, int y, int x){
                             BOX_CHAR | COLOR_PAIR(blocks[c][r]));
 }
 
-/* Clears all characters on the window */
+/* Deletes all characters on the window */
 void clearwin(WINDOW * win){
     for (int r = 1;r < win->_maxy; r++) 
         for (int c = 1;c < win->_maxx; c++) 
@@ -537,11 +535,11 @@ void drawGameStatus(Game * game) {
     sprintf(buf, "Level: %i", game->level);
     mvwaddstr(game->menuwin, 4, 5, buf);
     /* Show tetromino on hold */
-    mvwaddstr(game->menuwin, game->menuwin->_maxy - 12, 5, "Holding:");
-    drawTetromino(game->menuwin, game->oh, game->menuwin->_maxy - 8, 9);
+    mvwaddstr(game->menuwin, game->menuwin->_maxy - 12, 5, "Next:");
+    drawTetromino(game->menuwin, game->nt, game->menuwin->_maxy - 8, 9);
     /* Show next tetromino */
-    mvwaddstr(game->menuwin, game->menuwin->_maxy - 23, 5, "Next:");
-    drawTetromino(game->menuwin, game->nt, game->menuwin->_maxy - 20, 9);
+    mvwaddstr(game->menuwin, game->menuwin->_maxy - 23, 5, "Holding:");
+    drawTetromino(game->menuwin, game->oh, game->menuwin->_maxy - 20, 9);
     wrefresh(game->menuwin);
 }
 
