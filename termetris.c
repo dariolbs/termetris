@@ -1,20 +1,5 @@
 /* Simple recreation of tetris using the curses library
- *
- * Copyright (C) 2024 Dário Lopes Batista
- * 
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA. */
+ * Check LICENCE for copyright and licence details */
 
 #include <curses.h>
 #include <stdio.h>
@@ -112,7 +97,7 @@ static void placeTetromino(Game * game);
 static void trySpawn(Game *game, Tetromino tetro);
 static void selectBlock(Game *game, int c, int r, int i);
 static void moveTetromino(Game *game, int h, int v);
-static void descendRows(Game *game, int sr);
+static void descendBlocks(Game *game, int sr);
 static void deleteTetromino(Game *game);
 static void deleteRow(Game *game, int rn);
 static void putOnHold(Game *game);
@@ -255,7 +240,7 @@ void putOnHold(Game * game) {
 }
 
 /* Move all rows down since sr (start row) */
-void descendRows(Game *game, int sr) {
+void descendBlocks(Game *game, int sr) {
     for (int r = sr; r >= 1; r--) {
         for (int c = 1; c <= GAME_BLOCK_WIDTH; c++)
             game->blocks[c][r+1] = game->blocks[c][r];
@@ -276,11 +261,14 @@ void deleteFullRows(Game *game) {
             if (game->blocks[c][r] == COLOR_BLACK)
                 del = 0;
         if (del) {
+            /* Delete the row */
             deleteRow(game, r);
-            descendRows(game, r - 1);
+            /* Delete the row */
+            descendBlocks(game, r - 1);
             dl++;
         }
     }
+    /* Update the game's structure */
     if (dl) {
         switch (dl){
             case 1: game->points += (40 * game->level); break;
@@ -557,6 +545,7 @@ WINDOW *create_newwin(int height, int width, int starty, int startx) {
 
 /* Draws the menu when the game isn't being played */
 void drawMenu(WINDOW * menuwin, Menu menu) {
+
     char selopt[15];
     char opt[15];
     int l = 0;
@@ -568,9 +557,8 @@ void drawMenu(WINDOW * menuwin, Menu menu) {
     wattroff(menuwin, A_BOLD | COLOR_PAIR(11));
 
     /* 0 means no option is selected */
-    if (menu.sel != 0){
+    if (menu.sel != 0)
         sprintf(selopt, "> %s", menu.options[menu.sel - 1]);;
-    }
     for (int i = 1; i <= 2; i++, l++){
         if (i != menu.sel){
             sprintf(opt, "  %s", menu.options[i - 1]);;
