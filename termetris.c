@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <signal.h>
 #include <time.h>
 
 #define     MINLINES            38
@@ -84,12 +83,12 @@ struct Game {
 static void drawMenu(WINDOW * menuwin, Menu menu);
 static void runGame(Game *game);
 static void drawGameBox(Game *game);
-static void drawGameStatus(Game *game);
+static void drawGameStats(Game *game);
 static void drawTetromino(WINDOW * win, Tetromino t, int y, int x);
 static Menu startMenu(WINDOW * menuwin);
 static Game * createGame(WINDOW * gwin);
-static WINDOW * drawGameWindow();
-static WINDOW * drawMenuWindow();
+static WINDOW * createGameWindow();
+static WINDOW * createMenuWindow();
 static WINDOW * create_newwin(int heightm, int width, int starty, int startx);
 /* Tetromino Management */
 static void selectBlock(Game *game, int c, int r, int bn);
@@ -263,7 +262,7 @@ void deleteFullRows(Game *game) {
         if (del) {
             /* Delete the row */
             deleteRow(game, r);
-            /* Delete the row */
+            /* Move blocks down */
             descendBlocks(game, r - 1);
             dl++;
         }
@@ -440,7 +439,7 @@ void tryRotate(Game *game, int d) {
     }
 }
 
-/* Places the tetromino in the current position */
+/* Places the tetromino in the current position (Deselects it) */
 void placeTetromino(Game *game) {
     for (int i = 0; i <= 3; i++) {
         game->selblocks[i].ptr = NO_BLOCK;
@@ -513,8 +512,8 @@ void clearwin(WINDOW * win){
             mvwaddch(win, r, c, ' ');
 }
 
-/* Draws the status of the game's menu */
-void drawGameStatus(Game * game) {
+/* Displays the stats in the game's menu */
+void drawGameStats(Game * game) {
     /* Show points */
     char buf[30];
     sprintf(buf, "Points: %i", game->points);
@@ -574,6 +573,7 @@ void drawMenu(WINDOW * menuwin, Menu menu) {
     wrefresh(menuwin);
 }
 
+/* Initializes the menu's structure */
 Menu startMenu(WINDOW * menuwin) {
     Menu menu;
     menu.options[0] = "Start Game";
@@ -582,7 +582,7 @@ Menu startMenu(WINDOW * menuwin) {
     return menu;
 }
 
-/* Draws the game box based on the block matrice */
+/* Draws the game box based on the block matrix */
 void drawGameBox(Game *game) {
     for (int c = 1; c <= GAME_BLOCK_WIDTH; c++)
         for (int r = 1; r <= GAME_BLOCK_HEIGHT; r++)
@@ -594,7 +594,7 @@ void drawGameBox(Game *game) {
 }
 
 /* Creates the a window for the game */
-WINDOW * drawGameWindow() {
+WINDOW * createGameWindow() {
     WINDOW *my_win;
     int width, height;
 	height = GAME_BLOCK_HEIGHT * 2 + 2;
@@ -605,7 +605,7 @@ WINDOW * drawGameWindow() {
 }
 
 /* Creates the a window for the menu */
-WINDOW * drawMenuWindow() {
+WINDOW * createMenuWindow() {
     WINDOW *my_win;
 
     int startx, starty, width, height;
@@ -659,7 +659,7 @@ void runGame(Game * game) {
     game->groundtimer = clock();
     game->nt = gentetromino(game->ct);
     clearwin(game->menuwin);
-    drawGameStatus(game);
+    drawGameStats(game);
     refresh();
 
     int io = 0;         /* If the game is over */
@@ -685,7 +685,7 @@ void runGame(Game * game) {
                         showTetromino(game);
                     game->timer = clock() + GSPEED(game);
                     updateDowntime(game);
-                    drawGameStatus(game);
+                    drawGameStats(game);
                 }
             }
         } else {
@@ -722,12 +722,12 @@ void runGame(Game * game) {
                 game->ct = game->nt;
                 game->nt = gentetromino(game->ct);
                 game->canhold = 1;
-                drawGameStatus(game);
+                drawGameStats(game);
                 break;
             case 'c':
                 if (!isOver(game, game->oh))
                     putOnHold(game);
-                drawGameStatus(game);
+                drawGameStats(game);
                 break;
             case 'z':
             case 'x':
@@ -772,7 +772,7 @@ void resizeHandler() {
         endwin();
         exit(1);
     }
-    menu_window = drawMenuWindow();
+    menu_window = createMenuWindow();
     drawMenu(menu_window, menu);
     box(game->win, 0,0);
     drawGameBox(game);
@@ -808,14 +808,14 @@ int main(int argc, char *argv[]) {
     refresh();
 
     /* Initialize the menu */
-    menu_window = drawMenuWindow();
+    menu_window = createMenuWindow();
     menu = startMenu(menu_window);
     drawMenu(menu_window, menu);
     wrefresh(menu_window);
     refresh();
 
     /* Initializes the game */
-    game_window = drawGameWindow();
+    game_window = createGameWindow();
     game = createGame(game_window);
     game->menuwin = menu_window;
     nodelay(game->win, TRUE);   /* Don't wait for user input when playing the game */
@@ -833,7 +833,7 @@ int main(int argc, char *argv[]) {
             drawMenu(menu_window, menu);
             refresh();
         } else if (c == 'p') {
-            drawGameStatus(game);
+            drawGameStats(game);
             refresh();
         } else if (c == KEY_RESIZE){
             resizeHandler();
