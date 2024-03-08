@@ -16,10 +16,12 @@
 #define     MAX_SPEED_LEVEL     20
 #define     REF_GAME(G)         drawGameBox((G)); refresh();
 
+/* Text positions */
 #define     POINTS_POS          4
 #define     NEXT_POS            -10
 #define     HOLD_POS            -20
-
+#define     GAME_OVER_COL       17
+#define     GAME_OVER_ROW(N)    (19 + (N))
 /* Game speed. Where L is the level */
 #define     GSPEED(L)           ((L)->level <= MAX_SPEED_LEVEL ? CLOCKS_PER_SEC / (L)->level : CLOCKS_PER_SEC / MAX_SPEED_LEVEL)
 /* Next color. Where C is previous color */
@@ -76,6 +78,8 @@ struct Game {
     clock_t timer;          /* Timer to move the tetromino down automatically */
     clock_t groundtimer;    /* Timer to automatically place the tetromino on the ground  */
     int canhold;            /* If the player can put the current tetromino on hold */
+    int isrunning;
+    int isover;
     int level;
     int lines;              /* Number of lines deleted */
     unsigned int points;
@@ -84,6 +88,7 @@ struct Game {
 static void drawMenu(WINDOW * menuwin, Menu menu);
 static void runGame(Game *game);
 static void drawGameBox(Game *game);
+static void drawGameOver(Game *game);
 static void drawGameStats(Game *game);
 static void drawGameCommands(Game * game);
 static void drawTetromino(WINDOW * win, Tetromino t, int y, int x);
@@ -96,7 +101,7 @@ static void descendBlocks(Game *game, int sr);
 static void deleteTetromino(Game *game);
 static void deleteRow(Game *game, int rn);
 static void putOnHold(Game *game);
-static void showTetromino(Game *game);
+static void showPlacedTetromino(Game *game);
 static void deleteFullRows(Game *game);
 static void resizeHandler();
 static void tryRotate(Game *game, int d);
@@ -283,7 +288,7 @@ void deleteFullRows(Game *game) {
 }
 
 /* Shows the current tetromino placed and refreshes the screen */
-void showTetromino(Game *game) {
+void showPlacedTetromino(Game *game) {
 
     int db = 0;     /* Nº of blocks down */
     int *b[4];      /* Buffer for the plocks */
@@ -304,8 +309,7 @@ void showTetromino(Game *game) {
 }
 
 /* Checks if a block is currently selected */
-int
-isSelected(Game *game, int * b) {
+int isSelected(Game *game, int * b) {
     for (int i = 0; i <= 3; i++ )
         if (b == game->selblocks[i].ptr)
             return 1;
@@ -324,11 +328,9 @@ int checkMove(Game *game, int h, int v) {
     int chk = 1;
     int i, c, r;
     int color = *game->selblocks[0].ptr;
-
     /* Delete all current selected blocks to avoid conflicts */
     for (i = 0; i <= 3; i++)
         *game->selblocks[i].ptr = COLOR_BLACK;
-
     /* Check if moving any block will cause conflicts */
     for (i = 0; i <= 3; i++) {
         c = game->selblocks[i].c;
@@ -343,7 +345,6 @@ int checkMove(Game *game, int h, int v) {
     /* Restore blocks */
     for (i = 0; i <= 3; i++)
         *game->selblocks[i].ptr = color;
-
     return chk;
 }
 
@@ -365,7 +366,8 @@ int canRotate(Game *game, int d) {
         nc = game->selblocks[i].center->c - (dr * d);
         nr = game->selblocks[i].center->r + (dc * d);
         if (
-            (game->blocks[nc][nr] != COLOR_BLACK) ||      /* Check if there aren't any blocks on the new coordinates */
+            /* Check if there aren't any blocks on the new coordinates */
+            (game->blocks[nc][nr] != COLOR_BLACK) ||
             /* Check if new new coordinates are inside the box */
             ( ( nr < 1 ) || ( nc < 1 ) ) ||
             ( ( nr > GAME_BLOCK_HEIGHT ) || ( nc > GAME_BLOCK_WIDTH ))
@@ -517,7 +519,7 @@ void clearwin(WINDOW * win){
 /* Displays the game's keybindings on the game's status window */
 void drawGameCommands(Game * game){
     int r = 2;
-    int c = game->menuwin->_maxx - 20;
+    int c = game->menuwin->_maxx - 18;
     mvwaddstr(game->menuwin, r++, c, "Commands:");
     mvwaddstr(game->menuwin, r++, c, "Move: Arrow keys");
     mvwaddstr(game->menuwin, r++, c, "Rotate: z/x");
@@ -596,8 +598,26 @@ Menu startMenu(WINDOW * menuwin) {
     return menu;
 }
 
+/* Draws the game over screen */
+void drawGameOver(Game *game){
+    char pointsstr[20], levelstr[15], linesstr[15];  
+
+    wattron(game->win, A_BOLD | COLOR_PAIR(11));
+    mvwaddstr(game->win, GAME_OVER_ROW(0), GAME_OVER_COL, "Game Over");
+    wattroff(game->win, A_BOLD | COLOR_PAIR(11));
+    sprintf(pointsstr, "Points: %i", game->points);
+    mvwaddstr(game->win, GAME_OVER_ROW(1), GAME_OVER_COL, pointsstr);
+    sprintf(levelstr, "Level: %i", game->level);
+    mvwaddstr(game->win, GAME_OVER_ROW(2), GAME_OVER_COL, levelstr);
+    sprintf(linesstr, "Lines: %i", game->lines);
+    mvwaddstr(game->win, GAME_OVER_ROW(3), GAME_OVER_COL, linesstr);
+
+    wrefresh(game->win);
+}
+
 /* Draws the game box based on the block matrix */
 void drawGameBox(Game *game) {
+    /* Draw blocks */
     for (int c = 1; c <= GAME_BLOCK_WIDTH; c++)
         for (int r = 1; r <= GAME_BLOCK_HEIGHT; r++)
             for ( int i = 0; i <= 1; i++)
@@ -644,6 +664,7 @@ Game * createGame(WINDOW * gwin) {
     game.level = 1;
     game.lines = 0;
     game.timer = 0;
+    game.isrunning = 0;
     game.groundtimer = 0;
 
     Tetromino oh;
@@ -666,26 +687,25 @@ Game * createGame(WINDOW * gwin) {
 void runGame(Game * game) {
     int c, d;
     int nmovemax = 0;
-    char pointsstr[20], levelstr[15], linesstr[15];  
-    trySpawn(game, game->nt);
-    showTetromino(game);
     game->timer = clock() + GSPEED(game);
     game->groundtimer = clock();
+    game->isrunning = 1;
+    game->isover = 0;
+    trySpawn(game, game->nt);
+    showPlacedTetromino(game);
     game->nt = gentetromino(game->ct);
     clearwin(game->menuwin);
-    drawGameStats(game);
     drawGameCommands(game);
+    drawGameStats(game);
     refresh();
 
-    int io = 0;         /* If the game is over */
-
-    while ((c = wgetch(game->win)) != 'q' && !io && c != 27) {
+    while ((c = wgetch(game->win)) != 'q' && !game->isover && c != 27) {
         if ( c == ERR ){
             /* The user isn't pressing any key */
             if (clock() > game->timer){
                 if (checkMove(game, 0, 1)){
                     moveTetromino(game, 0, 1);
-                    showTetromino(game);
+                    showPlacedTetromino(game);
                     updateDowntime(game);
                     game->timer = clock() + GSPEED(game);
                 }
@@ -696,8 +716,8 @@ void runGame(Game * game) {
                     game->ct = game->nt;
                     game->nt = gentetromino(game->ct);
                     game->canhold = 1;
-                    if (!(io = isOver(game, game->nt)))
-                        showTetromino(game);
+                    if (!(game->isover = isOver(game, game->nt)))
+                        showPlacedTetromino(game);
                     game->timer = clock() + GSPEED(game);
                     updateDowntime(game);
                     drawGameStats(game);
@@ -732,7 +752,7 @@ void runGame(Game * game) {
                 /* Placing a tetromino */
                 placeTetromino(game);
                 deleteFullRows(game);
-                if (!(io = isOver(game, game->nt)))
+                if (!(game->isover = isOver(game, game->nt)))
                     trySpawn(game, game->nt);
                 game->ct = game->nt;
                 game->nt = gentetromino(game->ct);
@@ -754,43 +774,40 @@ void runGame(Game * game) {
                 break;
         }
         updateDowntime(game);
-        showTetromino(game);
+        showPlacedTetromino(game);
         }
     }
-
-    /* Clear everything */
-    for (int i = 1; i <= GAME_BLOCK_WIDTH; i++)
-        for (int a = 1; a <= GAME_BLOCK_HEIGHT; a++)
-            game->blocks[i][a] =  COLOR_BLACK;
-
-    drawGameBox(game);
-    wattron(game->win, A_BOLD | COLOR_PAIR(11));
-    mvwaddstr(game->win, 19, 17, "Game Over");
-    wattroff(game->win, A_BOLD | COLOR_PAIR(11));
-    sprintf(pointsstr, "Points: %i", game->points);
-    mvwaddstr(game->win, 20, 17, pointsstr);
-    sprintf(levelstr, "Level: %i", game->level);
-    mvwaddstr(game->win, 21, 17, levelstr);
-    sprintf(linesstr, "Lines: %i", game->lines);
-    mvwaddstr(game->win, 22, 17, linesstr);
-
+    game->isover = 1;
+    game->isrunning = 0;
+    /* Finish the game */
+    clearwin(game->win);
     clearwin(game->menuwin);
+    drawGameOver(game);
     wrefresh(game->win);
     refresh();
 }
 
 void resizeHandler() {
-    endwin();
     refresh();
-
     if (LINES < MINLINES || COLS < MINCOLS){
         endwin();
-        exit(1);
+        exit(EXIT_FAILURE);
     }
-    menu_window = createMenuWindow();
-    drawMenu(menu_window, menu);
+    /* Not sure why but i need to do this */
+    game->menuwin = menu_window = createMenuWindow();
+
+    clearwin(menu_window);
+    if (!game->isrunning)
+        drawMenu(menu_window, menu);
+    else {
+        drawGameStats(game);
+        drawGameCommands(game);
+    }
     box(game->win, 0,0);
-    drawGameBox(game);
+    if (game->isover)
+        drawGameOver(game);
+    else
+        drawGameBox(game);
     refresh();
 }
 
