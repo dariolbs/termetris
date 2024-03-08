@@ -15,14 +15,15 @@
 #define     NO_BLOCK            0
 #define     MAX_SPEED_LEVEL     20
 #define     REF_GAME(G)         drawGameBox((G)); refresh();
-/* Where L is the level */
-#define     GSPEED(L)           ((L)->level <= MAX_SPEED_LEVEL ? CLOCKS_PER_SEC / (L)->level : CLOCKS_PER_SEC / MAX_SPEED_LEVEL)
-/* Where C is previous color */
-#define     NCOLOR(C)           ((C) >= 4 ? 1 : (C)+1)
 
 #define     POINTS_POS          4
 #define     NEXT_POS            -10
 #define     HOLD_POS            -20
+
+/* Game speed. Where L is the level */
+#define     GSPEED(L)           ((L)->level <= MAX_SPEED_LEVEL ? CLOCKS_PER_SEC / (L)->level : CLOCKS_PER_SEC / MAX_SPEED_LEVEL)
+/* Next color. Where C is previous color */
+#define     NCOLOR(C)           ((C) >= 4 ? 1 : (C)+1)
 
 typedef struct Tblock Tblock;
 typedef struct Tetromino Tetromino;
@@ -58,7 +59,7 @@ struct Tetromino {
     int color;
 };
 
-struct Tblock {
+struct Tblock {         /* Tetromino block */
     int r, c;           /* Row and column */
     int * ptr;          /* Pointer to the block */
     Tblock * center;    /* Center of the tetromino*/
@@ -790,7 +791,7 @@ int main(int argc, char *argv[]) {
 
     if (LINES < MINLINES || COLS < MINCOLS){
         endwin();
-        printf("Not enough space\n");
+        printf("Not enough space to play the game. Try to resize the window or change the font size\n");
         return EXIT_FAILURE;
     }
 
