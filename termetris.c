@@ -85,6 +85,7 @@ static void drawMenu(WINDOW * menuwin, Menu menu);
 static void runGame(Game *game);
 static void drawGameBox(Game *game);
 static void drawGameStats(Game *game);
+static void drawGameCommands(Game * game);
 static void drawTetromino(WINDOW * win, Tetromino t, int y, int x);
 static void selectBlock(Game *game, int c, int r, int bn);
 static void placeTetromino(Game * game);
@@ -513,6 +514,18 @@ void clearwin(WINDOW * win){
             mvwaddch(win, r, c, ' ');
 }
 
+/* Displays the game's keybindings on the game's status window */
+void drawGameCommands(Game * game){
+    int r = 2;
+    int c = game->menuwin->_maxx - 20;
+    mvwaddstr(game->menuwin, r++, c, "Commands:");
+    mvwaddstr(game->menuwin, r++, c, "Move: Arrow keys");
+    mvwaddstr(game->menuwin, r++, c, "Rotate: z/x");
+    mvwaddstr(game->menuwin, r++, c, "Hold: c");
+    mvwaddstr(game->menuwin, r, c,   "Quit: q");
+    wrefresh(game->menuwin);
+}
+
 /* Displays the stats in the game's menu */
 void drawGameStats(Game * game) {
     /* Show points */
@@ -661,6 +674,7 @@ void runGame(Game * game) {
     game->nt = gentetromino(game->ct);
     clearwin(game->menuwin);
     drawGameStats(game);
+    drawGameCommands(game);
     refresh();
 
     int io = 0;         /* If the game is over */
