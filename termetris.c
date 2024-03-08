@@ -66,18 +66,18 @@ struct Tblock {
 
 struct Game {
     WINDOW * win;           /* Window of the game */
-    WINDOW * menuwin;       /* Window of the menu */
+    WINDOW * menuwin;       /* Window of the menu (to display stats) */
     int blocks[GAME_BLOCK_WIDTH + 1][GAME_BLOCK_HEIGHT + 1];
     Tblock selblocks[4];    /* Current selected blocks */
     Tetromino nt;           /* Next tetromino */
     Tetromino ct;           /* Current tetromino */
     Tetromino oh;           /* Tetromino on hold */
-    unsigned int points;
-    clock_t timer;
-    clock_t groundtimer;
+    clock_t timer;          /* Timer to move the tetromino down automatically */
+    clock_t groundtimer;    /* Timer to automatically place the tetromino on the ground  */
     int canhold;            /* If the player can put the current tetromino on hold */
     int level;
     int lines;              /* Number of lines deleted */
+    unsigned int points;
 };
 
 static void drawMenu(WINDOW * menuwin, Menu menu);
@@ -85,12 +85,6 @@ static void runGame(Game *game);
 static void drawGameBox(Game *game);
 static void drawGameStats(Game *game);
 static void drawTetromino(WINDOW * win, Tetromino t, int y, int x);
-static Menu startMenu(WINDOW * menuwin);
-static Game * createGame(WINDOW * gwin);
-static WINDOW * createGameWindow();
-static WINDOW * createMenuWindow();
-static WINDOW * create_newwin(int heightm, int width, int starty, int startx);
-/* Tetromino Management */
 static void selectBlock(Game *game, int c, int r, int bn);
 static void placeTetromino(Game * game);
 static void trySpawn(Game *game, Tetromino tetro);
@@ -109,6 +103,11 @@ static void updateDowntime(Game *game);
 static int isOver(Game *game, Tetromino t);
 static int checkMove(Game *game, int h, int v);
 static int isSelected(Game *game, int * b);
+static Menu startMenu(WINDOW * menuwin);
+static Game * createGame(WINDOW * gwin);
+static WINDOW * createGameWindow();
+static WINDOW * createMenuWindow();
+static WINDOW * create_newwin(int heightm, int width, int starty, int startx);
 static Tetromino gentetromino(Tetromino prev);
 
 /* Static variables */
@@ -211,6 +210,7 @@ void deleteRow(Game *game, int rn) {
         game->blocks[c][rn] = COLOR_BLACK;
 }
 
+/* Updates the downtimer of the game */
 void updateDowntime(Game *game) {
     if (!checkMove(game, 0, 1) && clock() > game->groundtimer)
         game->groundtimer = clock() + CLOCKS_PER_SEC;
