@@ -4,8 +4,11 @@
 #include <curses.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <time.h>
+
+#define     VERSION             "1.0"
 
 #define     MINLINES            38
 #define     MINCOLS             82
@@ -793,8 +796,9 @@ void resizeHandler() {
         endwin();
         exit(EXIT_FAILURE);
     }
-    /* Not sure why but i need to do this */
+    /* Not sure why but i have to do this */
     game->menuwin = menu_window = createMenuWindow();
+
     clearwin(menu_window);
     if (!game->isrunning)
         drawMenu(menu_window, menu);
@@ -809,6 +813,15 @@ void resizeHandler() {
 }
 
 int main(int argc, char *argv[]) {
+
+    /* Read arguments */
+    for (int i = 1; i < argc; i++){
+        if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--version") ) {
+            printf("termetris-%s\n", VERSION);
+            exit(EXIT_SUCCESS);
+        }
+    }
+
     initscr();  /* Initialize curse's main source */
 
     if (!has_colors()){
