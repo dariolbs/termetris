@@ -90,7 +90,6 @@ static void runGame(Game *game);
 static void drawGameBox(Game *game);
 static void drawGameOver(Game *game);
 static void drawGameStats(Game *game);
-static void drawGameCommands(Game * game);
 static void drawTetromino(WINDOW * win, Tetromino t, int y, int x);
 static void selectBlock(Game *game, int c, int r, int bn);
 static void placeTetromino(Game * game);
@@ -516,18 +515,6 @@ void clearwin(WINDOW * win){
             mvwaddch(win, r, c, ' ');
 }
 
-/* Displays the game's keybindings on the game's status window */
-void drawGameCommands(Game * game){
-    int r = 2;
-    int c = game->menuwin->_maxx - 18;
-    mvwaddstr(game->menuwin, r++, c, "Commands:");
-    mvwaddstr(game->menuwin, r++, c, "Move: Arrow keys");
-    mvwaddstr(game->menuwin, r++, c, "Rotate: z/x");
-    mvwaddstr(game->menuwin, r++, c, "Hold: c");
-    mvwaddstr(game->menuwin, r, c,   "Quit: q");
-    wrefresh(game->menuwin);
-}
-
 /* Displays the stats in the game's menu */
 void drawGameStats(Game * game) {
     /* Show points */
@@ -566,7 +553,16 @@ void drawMenu(WINDOW * menuwin, Menu menu) {
     int l = 0;
     int spos = (menuwin->_maxx / 2) - 7;
 
-    /* Draw logo */
+    /* Draw keybindings */
+    int r = menuwin->_maxy - 5;
+    int c = 2;
+    mvwaddstr(menuwin, r++, c, "Commands:");
+    mvwaddstr(menuwin, r++, c, "Move: Arrow keys");
+    mvwaddstr(menuwin, r++, c, "Rotate: z/x");
+    mvwaddstr(menuwin, r++, c, "Hold: c");
+    mvwaddstr(menuwin, r, c,   "Quit: q");
+
+    /* Draw title of the game */
     wattron(menuwin, A_BOLD | COLOR_PAIR(11));
     mvwaddstr(menuwin, menuwin->_maxy / 11, spos + 2, "Termetris");
     wattroff(menuwin, A_BOLD | COLOR_PAIR(11));
@@ -695,10 +691,8 @@ void runGame(Game * game) {
     showPlacedTetromino(game);
     game->nt = gentetromino(game->ct);
     clearwin(game->menuwin);
-    drawGameCommands(game);
     drawGameStats(game);
     refresh();
-
     while ((c = wgetch(game->win)) != 'q' && !game->isover && c != 27) {
         if ( c == ERR ){
             /* The user isn't pressing any key */
@@ -795,14 +789,11 @@ void resizeHandler() {
     }
     /* Not sure why but i need to do this */
     game->menuwin = menu_window = createMenuWindow();
-
     clearwin(menu_window);
     if (!game->isrunning)
         drawMenu(menu_window, menu);
-    else {
+    else
         drawGameStats(game);
-        drawGameCommands(game);
-    }
     box(game->win, 0,0);
     if (game->isover)
         drawGameOver(game);
