@@ -16,6 +16,12 @@
 #define     MAX_SPEED_LEVEL     20
 #define     REF_GAME(G)         drawGameBox((G)); refresh();
 
+/* Points gained by deleting X lines multiplied by the level */
+#define     POINTS_1_LINE       40
+#define     POINTS_2_LINE       100
+#define     POINTS_3_LINE       300
+#define     POINTS_4_LINE       1200
+
 /* Text positions */
 #define     POINTS_POS          4
 #define     NEXT_POS            -10
@@ -276,10 +282,10 @@ void deleteFullRows(Game *game) {
     /* Update the game's structure */
     if (dl) {
         switch (dl){
-            case 1: game->points += (40 * game->level); break;
-            case 2: game->points += (100 * game->level); break;
-            case 3: game->points += (300 * game->level); break;
-            default: game->points += (300 * game->level); break;
+            case 1: game->points += (POINTS_1_LINE * game->level); break;
+            case 2: game->points += (POINTS_2_LINE * game->level); break;
+            case 3: game->points += (POINTS_3_LINE * game->level); break;
+            default: game->points += (POINTS_4_LINE * game->level); break;
         }
     game->lines += dl;
     game->level = (int)((game->lines / 10) + 1);
