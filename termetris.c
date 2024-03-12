@@ -79,7 +79,7 @@ struct Tblock {         /* Tetromino block */
 struct Game {
     WINDOW * win;           /* Window of the game */
     WINDOW * menuwin;       /* Window of the menu (to display stats) */
-    int blocks[GAME_BLOCK_WIDTH + 1][GAME_BLOCK_HEIGHT + 1];
+    int blocks[GAME_BLOCK_WIDTH + 1][GAME_BLOCK_HEIGHT + 1];    /* Block matrix */
     Tblock selblocks[4];    /* Current selected blocks */
     Tetromino nt;           /* Next tetromino */
     Tetromino ct;           /* Current tetromino */
@@ -728,13 +728,16 @@ void runGame(Game * game) {
             }
         } else {
         switch (c) {
+            case 'j':
             case KEY_DOWN:
                 if (checkMove(game, 0, 1))
                     moveTetromino(game, 0, 1);
                 break;
+            case 'h':
+            case 'l':
             case KEY_LEFT:
             case KEY_RIGHT:
-                d = (c == KEY_LEFT ? -1 : 1);
+                d = (c == KEY_LEFT || c == 'h' ? -1 : 1);
                 if (!nmovemax){
                     if (checkMove(game, d, 0))
                         moveTetromino(game, d, 0);
@@ -826,13 +829,13 @@ int main(int argc, char *argv[]) {
 
     if (!has_colors()){
         endwin();
-        printf("Your terminal emulator doesn't support colors.\n");
+        printf("Termetris needs color support to run");
         exit(1);
     }
 
     if (LINES < MINLINES || COLS < MINCOLS){
         endwin();
-        printf("Not enough space to play the game. Try to resize the window or change the font size\n");
+        printf("Not enough space to play the game, try to resize the terminal window or decrease the font size.\n");
         return EXIT_FAILURE;
     }
 
@@ -842,7 +845,6 @@ int main(int argc, char *argv[]) {
     cbreak();               /* One character at a time */
     noecho();               /* Disable do automatic echo of typed characters */
     keypad(stdscr, TRUE);   /* Enable the capture of special keystrokes (such as arrow keys) */
-
     raw();
     start_color();
     use_default_colors();
