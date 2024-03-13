@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <time.h>
 
-#define     VERSION             "1.0"
+#define     VERSION             "1.0.0"
 
 #define     MINLINES            38
 #define     MINCOLS             82
