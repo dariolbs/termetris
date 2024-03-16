@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <time.h>
 
-#define     VERSION             "1.0.0"
+#define     VERSION             "1.0.1"
 
 #define     MINLINES            38
 #define     MINCOLS             82
@@ -119,7 +119,7 @@ static int isOver(Game *game, Tetromino t);
 static int checkMove(Game *game, int h, int v);
 static int isSelected(Game *game, int * b);
 static Menu startMenu(WINDOW * menuwin);
-static Game * createGame(WINDOW * gwin);
+static Game * createGame(Game * game, WINDOW * gwin);
 static WINDOW * createGameWindow();
 static WINDOW * createMenuWindow();
 static WINDOW * create_newwin(int heightm, int width, int starty, int startx);
@@ -659,9 +659,8 @@ WINDOW * createMenuWindow() {
 }
 
 /* Initializes the game structure */
-Game * createGame(WINDOW * gwin) {
+Game * createGame(Game * game, WINDOW * gwin) {
 
-    game = (Game *)malloc(sizeof(Game));
     Tetromino tet;
 
     game->win = gwin;
@@ -860,8 +859,9 @@ int main(int argc, char *argv[]) {
     refresh();
 
     /* Initializes the game */
+    game = (Game *)malloc(sizeof(Game));
     game_window = createGameWindow();
-    game = createGame(game_window);
+    createGame(game, game_window);
     game->menuwin = menu_window;
     nodelay(game->win, TRUE);   /* Don't wait for user input when playing the game */
     keypad(game->win, TRUE);    /* Enable the capture of special keystrokes (such as arrow keys) */
@@ -888,7 +888,7 @@ int main(int argc, char *argv[]) {
                 drawMenu(menu_window, menu);
                 runGame(game);
                 /* Restrat the game */
-                game = createGame(game->win);
+                game = createGame(game, game->win);
                 menu.sel = 1;
                 drawMenu(menu_window, menu);
                 refresh();
