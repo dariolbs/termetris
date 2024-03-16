@@ -1,7 +1,7 @@
 /* Simple recreation of tetris using the curses library
  * Check LICENCE for copyright and licence details */
 
-#include <curses.h>
+#include <ncurses.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -661,32 +661,32 @@ WINDOW * createMenuWindow() {
 /* Initializes the game structure */
 Game * createGame(WINDOW * gwin) {
 
-    static Game game;
+    game = (Game *)malloc(sizeof(Game));
     Tetromino tet;
 
-    game.win = gwin;
-    game.canhold = 1;
-    game.level = 1;
-    game.lines = 0;
-    game.timer = 0;
-    game.isrunning = 0;
-    game.groundtimer = 0;
+    game->win = gwin;
+    game->canhold = 1;
+    game->level = 1;
+    game->lines = 0;
+    game->timer = 0;
+    game->isrunning = 0;
+    game->groundtimer = 0;
 
     Tetromino oh;
     oh.type = NONE;
-    game.oh = oh;
+    game->oh = oh;
 
     for (int i = 1; i <= GAME_BLOCK_WIDTH; i++)
         for (int a = 1; a <= GAME_BLOCK_HEIGHT; a++)
-            game.blocks[i][a] = COLOR_BLACK;
+            game->blocks[i][a] = COLOR_BLACK;
 
     tet.inv = rand() % 2;           /* inverted */
     tet.type =  rand() % 5 + 1;     /* type */
     tet.color = 1;
-    game.points = 0;
-    game.nt = tet;
+    game->points = 0;
+    game->nt = tet;
 
-    return (&game);
+    return game;
 }
 
 void runGame(Game * game) {
@@ -797,6 +797,7 @@ void resizeHandler() {
     refresh();
     if (LINES < MINLINES || COLS < MINCOLS){
         endwin();
+        free(game);
         exit(EXIT_FAILURE);
     }
     /* Not sure why but i have to do this */
@@ -830,7 +831,7 @@ int main(int argc, char *argv[]) {
     if (!has_colors()){
         endwin();
         printf("Termetris needs color support to run");
-        exit(1);
+        return EXIT_FAILURE;
     }
 
     if (LINES < MINLINES || COLS < MINCOLS){
@@ -894,10 +895,12 @@ int main(int argc, char *argv[]) {
             }
             else if (menu.sel == 2){
                 endwin();
-                exit(0);
+                free(game);
+                return EXIT_SUCCESS;
             }
         }
     }
     endwin();
-    exit(0);
+    free(game);
+    return EXIT_SUCCESS;
 }
