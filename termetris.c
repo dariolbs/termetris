@@ -119,7 +119,7 @@ static int isOver(Game *game, Tetromino t);
 static int checkMove(Game *game, int h, int v);
 static int isSelected(Game *game, int * b);
 static Menu startMenu(WINDOW * menuwin);
-static Game * createGame(Game * game, WINDOW * gwin);
+static void createGame(Game * game, WINDOW * gwin);
 static WINDOW * createGameWindow();
 static WINDOW * createMenuWindow();
 static WINDOW * create_newwin(int heightm, int width, int starty, int startx);
@@ -128,7 +128,7 @@ static Tetromino gentetromino(Tetromino prev);
 /* Static variables */
 static WINDOW *game_window, *menu_window;
 static Menu menu;
-static Game * game;
+static Game game;
 
 /* Positions for the different types of tetrominos */
 #define I_POS   {{0, 1}, {0, 2}, {0, 3}, {0, 4}}
@@ -659,7 +659,7 @@ WINDOW * createMenuWindow() {
 }
 
 /* Initializes the game structure */
-Game * createGame(Game * game, WINDOW * gwin) {
+void createGame(Game * game, WINDOW * gwin) {
 
     Tetromino tet;
 
@@ -684,8 +684,6 @@ Game * createGame(Game * game, WINDOW * gwin) {
     tet.color = 1;
     game->points = 0;
     game->nt = tet;
-
-    return game;
 }
 
 void runGame(Game * game) {
@@ -796,22 +794,22 @@ void resizeHandler() {
     refresh();
     if (LINES < MINLINES || COLS < MINCOLS){
         endwin();
-        free(game);
         exit(EXIT_FAILURE);
     }
+
     /* Not sure why but i have to do this */
-    game->menuwin = menu_window = createMenuWindow();
+    game.menuwin = menu_window = createMenuWindow();
 
     clearwin(menu_window);
-    if (!game->isrunning)
+    if (!game.isrunning)
         drawMenu(menu_window, menu);
     else
-        drawGameStats(game);
-    box(game->win, 0,0);
-    if (game->isover)
-        drawGameOver(game);
+        drawGameStats(&game);
+    box(game.win, 0,0);
+    if (game.isover)
+        drawGameOver(&game);
     else
-        drawGameBox(game);
+        drawGameBox(&game);
     refresh();
 }
 
@@ -835,7 +833,7 @@ int main(int argc, char *argv[]) {
 
     if (LINES < MINLINES || COLS < MINCOLS){
         endwin();
-        printf("Not enough space to play the game, try to resize the terminal window or decrease the font size.\n");
+        printf("Not enough space to play the game, try resizing the terminal window or decrease the font size.\n");
         return EXIT_FAILURE;
     }
 
@@ -859,12 +857,11 @@ int main(int argc, char *argv[]) {
     refresh();
 
     /* Initializes the game */
-    game = (Game *)malloc(sizeof(Game));
     game_window = createGameWindow();
-    createGame(game, game_window);
-    game->menuwin = menu_window;
-    nodelay(game->win, TRUE);   /* Don't wait for user input when playing the game */
-    keypad(game->win, TRUE);    /* Enable the capture of special keystrokes (such as arrow keys) */
+    createGame(&game, game_window);
+    game.menuwin = menu_window;
+    nodelay(game.win, TRUE);   /* Don't wait for user input when playing the game */
+    keypad(game.win, TRUE);    /* Enable the capture of special keystrokes (such as arrow keys) */
 
     /* Menu selection */
     int c;
@@ -878,7 +875,7 @@ int main(int argc, char *argv[]) {
             drawMenu(menu_window, menu);
             refresh();
         } else if (c == 'p') {
-            drawGameStats(game);
+            drawGameStats(&game);
             refresh();
         } else if (c == KEY_RESIZE){
             resizeHandler();
@@ -886,21 +883,19 @@ int main(int argc, char *argv[]) {
             if (menu.sel == 1){
                 menu.sel = 0;
                 drawMenu(menu_window, menu);
-                runGame(game);
+                runGame(&game);
                 /* Restrat the game */
-                game = createGame(game, game->win);
+                createGame(&game, game.win);
                 menu.sel = 1;
                 drawMenu(menu_window, menu);
                 refresh();
             }
             else if (menu.sel == 2){
                 endwin();
-                free(game);
                 return EXIT_SUCCESS;
             }
         }
     }
     endwin();
-    free(game);
     return EXIT_SUCCESS;
 }
