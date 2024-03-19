@@ -725,16 +725,13 @@ void runGame(Game * game) {
             }
         } else {
         switch (c) {
-            case 'j':
             case KEY_DOWN:
                 if (checkMove(game, 0, 1))
                     moveTetromino(game, 0, 1);
                 break;
-            case 'h':
-            case 'l':
             case KEY_LEFT:
             case KEY_RIGHT:
-                d = (c == KEY_LEFT || c == 'h' ? -1 : 1);
+                d = (c == KEY_LEFT ? -1 : 1);
                 if (!nmovemax){
                     if (checkMove(game, d, 0))
                         moveTetromino(game, d, 0);
@@ -866,6 +863,36 @@ int main(int argc, char *argv[]) {
     /* Menu selection */
     int c;
     while ((c = getch()) != 'q'){
+        switch (c) {
+            case KEY_UP:
+                menu.sel = 1;
+                drawMenu(menu_window, menu);
+                break;
+            case KEY_DOWN:
+                menu.sel = 2;
+                drawMenu(menu_window, menu);
+                break;
+            case KEY_RESIZE:
+                resizeHandler();
+                break;
+            case 10: {
+                if (menu.sel == 1){
+                    menu.sel = 0;
+                    drawMenu(menu_window, menu);
+                    runGame(&game);
+                    /* Restrat the game */
+                    createGame(&game, game.win);
+                    menu.sel = 1;
+                    drawMenu(menu_window, menu);
+                } else if (menu.sel == 2){
+                    endwin();
+                    return EXIT_SUCCESS;
+                }
+                break;
+            }
+        }
+        refresh();
+        /*
         if (c == KEY_UP || c == 'k'){
             menu.sel = 1;
             drawMenu(menu_window, menu);
@@ -884,7 +911,6 @@ int main(int argc, char *argv[]) {
                 menu.sel = 0;
                 drawMenu(menu_window, menu);
                 runGame(&game);
-                /* Restrat the game */
                 createGame(&game, game.win);
                 menu.sel = 1;
                 drawMenu(menu_window, menu);
@@ -895,6 +921,7 @@ int main(int argc, char *argv[]) {
                 return EXIT_SUCCESS;
             }
         }
+        */
     }
     endwin();
     return EXIT_SUCCESS;
