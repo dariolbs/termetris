@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <time.h>
 
-#define     VERSION             "1.0.1"
+#define     VERSION             "1.0.2"
 
 #define     MINLINES            38
 #define     MINCOLS             82
@@ -892,36 +892,6 @@ int main(int argc, char *argv[]) {
             }
         }
         refresh();
-        /*
-        if (c == KEY_UP || c == 'k'){
-            menu.sel = 1;
-            drawMenu(menu_window, menu);
-            refresh();
-        } else if (c == KEY_DOWN || c == 'j'){
-            menu.sel = 2;
-            drawMenu(menu_window, menu);
-            refresh();
-        } else if (c == 'p') {
-            drawGameStats(&game);
-            refresh();
-        } else if (c == KEY_RESIZE){
-            resizeHandler();
-        } else if (c == 10){
-            if (menu.sel == 1){
-                menu.sel = 0;
-                drawMenu(menu_window, menu);
-                runGame(&game);
-                createGame(&game, game.win);
-                menu.sel = 1;
-                drawMenu(menu_window, menu);
-                refresh();
-            }
-            else if (menu.sel == 2){
-                endwin();
-                return EXIT_SUCCESS;
-            }
-        }
-        */
     }
     endwin();
     return EXIT_SUCCESS;
