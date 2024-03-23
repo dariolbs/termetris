@@ -1,5 +1,5 @@
 # termetris
-A simple tetris game in C using the curses library
+A simple tetris game in C using the ncurses library
 
 ## compile
 ```
