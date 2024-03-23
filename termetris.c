@@ -20,10 +20,10 @@
 #define     REF_GAME(G)         drawGameBox((G)); refresh();
 
 /* Points gained by deleting X lines multiplied by the level */
-#define     POINTS_1_LINE       40
-#define     POINTS_2_LINE       100
-#define     POINTS_3_LINE       300
-#define     POINTS_4_LINE       1200
+#define     POINTS_1_LINES      40
+#define     POINTS_2_LINES      100
+#define     POINTS_3_LINES      300
+#define     POINTS_4_LINES      1200
 
 /* Text positions */
 #define     POINTS_POS          4
@@ -31,10 +31,14 @@
 #define     HOLD_POS            -20
 #define     GAME_OVER_COL       17
 #define     GAME_OVER_ROW(N)    (19 + (N))
+
 /* Game speed. Where L is the level */
 #define     GSPEED(L)           ((L)->level <= MAX_SPEED_LEVEL ? CLOCKS_PER_SEC / (L)->level : CLOCKS_PER_SEC / MAX_SPEED_LEVEL)
 /* Next color. Where C is previous color */
 #define     NCOLOR(C)           ((C) >= 4 ? 1 : (C)+1)
+
+/* Keys */
+#define     KEY_ESCAPE          27
 
 typedef struct Tblock Tblock;
 typedef struct Tetromino Tetromino;
@@ -77,9 +81,10 @@ struct Tblock {         /* Tetromino block */
 };
 
 struct Game {
+    /* Block matrix. The blocks start counting at index 1 */
+    int blocks[GAME_BLOCK_WIDTH + 1][GAME_BLOCK_HEIGHT + 1];
     WINDOW * win;           /* Window of the game */
     WINDOW * menuwin;       /* Window of the menu (to display stats) */
-    int blocks[GAME_BLOCK_WIDTH + 1][GAME_BLOCK_HEIGHT + 1];    /* Block matrix */
     Tblock selblocks[4];    /* Current selected blocks */
     Tetromino nt;           /* Next tetromino */
     Tetromino ct;           /* Current tetromino */
@@ -131,11 +136,11 @@ static Menu menu;
 static Game game;
 
 /* Positions for the different types of tetrominos */
-#define I_POS   {{0, 1}, {0, 2}, {0, 3}, {0, 4}}
-#define O_POS   {{0, 1}, {0, 2}, {1, 1}, {1, 2}}
-#define T_POS   {{-1, 1},{0, 1}, {1, 1}, {0, 2}}
-#define S_POS   {{-1, 1},{0, 1}, {0, 2}, {1, 2}}
-#define L_POS   {{0, 1}, {0, 2}, {0, 3}, {1, 3}}
+#define I_POS   {{0, 1},  {0, 2}, {0, 3}, {0, 4}}
+#define O_POS   {{0, 1},  {0, 2}, {1, 1}, {1, 2}}
+#define T_POS   {{-1, 1}, {0, 1}, {1, 1}, {0, 2}}
+#define S_POS   {{-1, 1}, {0, 1}, {0, 2}, {1, 2}}
+#define L_POS   {{0, 1},  {0, 2}, {0, 3}, {1, 3}}
 
 /* Positions for the inverted tetrominos */
 #define InvI_POS   I_POS
@@ -285,10 +290,10 @@ void deleteFullRows(Game *game) {
     /* Update the game's structure */
     if (dl) {
         switch (dl){
-            case 1: game->points += (POINTS_1_LINE * game->level); break;
-            case 2: game->points += (POINTS_2_LINE * game->level); break;
-            case 3: game->points += (POINTS_3_LINE * game->level); break;
-            default: game->points += (POINTS_4_LINE * game->level); break;
+            case 1: game->points += (POINTS_1_LINES * game->level); break;
+            case 2: game->points += (POINTS_2_LINES * game->level); break;
+            case 3: game->points += (POINTS_3_LINES * game->level); break;
+            default: game->points += (POINTS_4_LINES * game->level); break;
         }
     game->lines += dl;
     game->level = (int)((game->lines / 10) + 1);
@@ -699,7 +704,7 @@ void runGame(Game * game) {
     clearwin(game->menuwin);
     drawGameStats(game);
     refresh();
-    while ((c = wgetch(game->win)) != 'q' && !game->isover && c != 27) {
+    while ((c = wgetch(game->win)) != 'q' && !game->isover && c != KEY_ESCAPE) {
         if ( c == ERR ){
             /* The user isn't pressing any key */
             if (clock() > game->timer){
@@ -824,7 +829,7 @@ int main(int argc, char *argv[]) {
 
     if (!has_colors()){
         endwin();
-        printf("Termetris needs color support to run");
+        printf("Termetris needs color support in order to run.\n");
         return EXIT_FAILURE;
     }
 
@@ -875,7 +880,7 @@ int main(int argc, char *argv[]) {
             case KEY_RESIZE:
                 resizeHandler();
                 break;
-            case 10: {
+            case 10: {      // Enter key
                 if (menu.sel == 1){
                     menu.sel = 0;
                     drawMenu(menu_window, menu);
