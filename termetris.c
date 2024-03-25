@@ -35,7 +35,8 @@
 /* Game speed. Where L is the level */
 #define     GSPEED(L)           ((L)->level <= MAX_SPEED_LEVEL ? CLOCKS_PER_SEC / (L)->level : CLOCKS_PER_SEC / MAX_SPEED_LEVEL)
 /* Next color. Where C is previous color */
-#define     NCOLOR(C)           ((C) >= 4 ? 1 : (C)+1)
+#define     NCOLOR(C)           ((C) % 4 + 1)
+
 
 /* Keys */
 #define     KEY_ESCAPE          27
