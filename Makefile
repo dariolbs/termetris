@@ -7,7 +7,7 @@ DESTDIR = /usr/local/bin
 all: termetris
 
 termetris: ${OBJ}
-	gcc ${LIBS} ${OBJ} -o termetris
+	gcc ${OBJ} -o termetris ${LIBS}
 
 termetris.o: ${SRC}
 	gcc ${CFLAGS} -c termetris.c
@@ -18,4 +18,4 @@ clean:
 install: all
 	cp -f termetris ${DESTDIR}
 
-.PHONY: clean all install
+.PHONY: clean all install debug
