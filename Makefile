@@ -3,14 +3,15 @@ SRC = termetris.c
 OBJ = ${SRC:.c=.o}
 CFLAGS = -std=c99 -pedantic -Wall -Os
 DESTDIR = /usr/local/bin
+CC = gcc
 
 all: termetris
 
 termetris: ${OBJ}
-	gcc ${OBJ} -o termetris ${LIBS}
+	$(CC) ${OBJ} -o termetris ${LIBS}
 
 termetris.o: ${SRC}
-	gcc ${CFLAGS} -c termetris.c
+	$(CC) ${CFLAGS} -c termetris.c
 
 clean:
 	rm -f ${DESTDIR}/termetris
