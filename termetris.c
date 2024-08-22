@@ -18,6 +18,8 @@
 #define     NO_BLOCK            0
 #define     MAX_SPEED_LEVEL     20
 #define     REF_GAME(G)         draw_game_box((G)); refresh();
+#define     MAXX(W)             (getmaxx((W)) - 2)
+#define     MAXY(W)             (getmaxy((W)) - 2)
 
 /* Points gained by deleting X lines multiplied by the level */
 #define     POINTS_1_LINES      40
@@ -525,8 +527,8 @@ void draw_tetromino(WINDOW * win, Tetromino t, int y, int x){
 
 /* Deletes all characters on the window */
 void clearwin(WINDOW * win){
-    for (int r = 1;r < win->_maxy; r++) 
-        for (int c = 1;c < win->_maxx; c++) 
+    for (int r = 1;r < MAXY(win) + 1; r++) 
+        for (int c = 1;c < MAXX(win); c++) 
             mvwaddch(win, r, c, ' ');
 }
 
@@ -540,11 +542,11 @@ void draw_game_stats(Game * game) {
     sprintf(buf, "Level: %i", game->level);
     mvwaddstr(game->menuwin, 4, 5, buf);
     /* Show tetromino on hold */
-    mvwaddstr(game->menuwin, game->menuwin->_maxy - 12, 5, "Next:");
-    draw_tetromino(game->menuwin, game->nt, game->menuwin->_maxy - 8, 9);
+    mvwaddstr(game->menuwin, MAXY(game->menuwin) - 12, 5, "Next:");
+    draw_tetromino(game->menuwin, game->nt, MAXY(game->menuwin) - 8, 9);
     /* Show next tetromino */
-    mvwaddstr(game->menuwin, game->menuwin->_maxy - 24, 5, "Holding:");
-    draw_tetromino(game->menuwin, game->oh, game->menuwin->_maxy - 20, 9);
+    mvwaddstr(game->menuwin, MAXY(game->menuwin) - 24, 5, "Holding:");
+    draw_tetromino(game->menuwin, game->oh, MAXY(game->menuwin) - 20, 9);
     wrefresh(game->menuwin);
 }
 
@@ -566,10 +568,10 @@ void draw_menu(WINDOW * menuwin, Menu menu) {
     char selopt[15];
     char opt[15];
     int l = 0;
-    int spos = (menuwin->_maxx / 2) - 7;
+    int spos = (MAXX(menuwin) / 2) - 7;
 
     /* Draw keybindings */
-    int r = menuwin->_maxy - 5;
+    int r = MAXY(menuwin) - 4;
     int c = 2;
     mvwaddstr(menuwin, r++, c, "Commands:");
     mvwaddstr(menuwin, r++, c, "Move: Arrow keys");
@@ -579,7 +581,7 @@ void draw_menu(WINDOW * menuwin, Menu menu) {
 
     /* Draw title of the game */
     wattron(menuwin, A_BOLD | COLOR_PAIR(11));
-    mvwaddstr(menuwin, menuwin->_maxy / 11, spos + 2, "Termetris");
+    mvwaddstr(menuwin, MAXY(menuwin) / 11, spos + 2, "Termetris");
     wattroff(menuwin, A_BOLD | COLOR_PAIR(11));
 
     /* 0 means no option is selected */
@@ -588,12 +590,10 @@ void draw_menu(WINDOW * menuwin, Menu menu) {
     for (int i = 1; i <= 2; i++, l++){
         if (i != menu.sel){
             sprintf(opt, "  %s", menu.options[i - 1]);;
-            mvwaddstr(menuwin, menuwin->_maxy / 2 + l,
-                    spos, opt);
+            mvwaddstr(menuwin, (MAXY(menuwin) / 2) + l, spos, opt);
         } else {
             wattron(menuwin, A_BOLD | COLOR_PAIR(14));
-            mvwaddstr(menuwin, menuwin->_maxy / 2 + l,
-                    spos, selopt);
+            mvwaddstr(menuwin, (MAXY(menuwin) / 2) + l, spos, selopt);
             wattroff(menuwin, A_BOLD | COLOR_PAIR(14));
         }
     }
