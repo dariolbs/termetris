@@ -527,8 +527,8 @@ void draw_tetromino(WINDOW * win, Tetromino t, int y, int x){
 
 /* Deletes all characters on the window */
 void clearwin(WINDOW * win){
-    for (int r = 1;r < MAXY(win) + 1; r++) 
-        for (int c = 1;c < MAXX(win); c++) 
+    for (int r = 1;r <= MAXY(win); r++) 
+        for (int c = 1;c <= MAXX(win); c++) 
             mvwaddch(win, r, c, ' ');
 }
 
