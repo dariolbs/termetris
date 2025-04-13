@@ -1,4 +1,4 @@
-LIBS = -lncurses
+LIBS = -lncurses -ltinfo
 SRC = termetris.c
 OBJ = ${SRC:.c=.o}
 CFLAGS = -std=c99 -pedantic -Wall -Os
@@ -15,6 +15,8 @@ termetris.o: ${SRC}
 
 clean:
 	rm -f ${DESTDIR}/termetris
+	rm -f ./termetris
+	rm -f ./termetris.o
 
 install: all
 	cp -f termetris ${DESTDIR}
