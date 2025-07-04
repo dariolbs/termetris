@@ -1,24 +1,27 @@
-LIBS = -lncurses -ltinfo
 SRC = termetris.c
 OBJ = ${SRC:.c=.o}
-CFLAGS = -std=c99 -pedantic -Wall -Os
+CFLAGS = -std=c99 -pedantic -Wall -Os -march=native
 DESTDIR = /usr/local/bin
 CC = gcc
+PKG_CONFIG = pkg-config
+
+NCURSES_FLAGS = $(shell $(PKG_CONFIG) --cflags --libs ncurses)
 
 all: termetris
 
 termetris: ${OBJ}
-	$(CC) ${OBJ} -o termetris ${LIBS}
+	$(CC) $(CFLAGS) ${OBJ} -o termetris $(NCURSES_FLAGS)
 
 termetris.o: ${SRC}
 	$(CC) ${CFLAGS} -c termetris.c
 
 clean:
-	rm -f ${DESTDIR}/termetris
 	rm -f ./termetris
 	rm -f ./termetris.o
 
 install: all
-	cp -f termetris ${DESTDIR}
+	mkdir -p $(DESTDIR)
+	cp -f termetris $(DESTDIR)
+	chmod 755 $(DESTDIR)/termetris
 
 .PHONY: clean all install debug
