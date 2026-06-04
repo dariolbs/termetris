@@ -1,27 +1,32 @@
+CC ?= gcc
+PKG_CONFIG ?= pkg-config
+CFLAGS ?= -std=c99 -pedantic -Wall -Os
+LDFLAGS ?=
+LDLIBS ?=
+
 SRC = termetris.c
 OBJ = ${SRC:.c=.o}
-CFLAGS = -std=c99 -pedantic -Wall -Os -march=native
-DESTDIR = /usr/local/bin
-CC = gcc
-PKG_CONFIG = pkg-config
+BINDIR = /usr/local/bin
 
-NCURSES_FLAGS = $(shell $(PKG_CONFIG) --cflags --libs ncurses)
+NCURSES_CFLAGS = $(shell $(PKG_CONFIG) --cflags ncurses)
+NCURSES_LIBS   = $(shell $(PKG_CONFIG) --libs ncurses)
 
 all: termetris
 
-termetris: ${OBJ}
-	$(CC) $(CFLAGS) ${OBJ} -o termetris $(NCURSES_FLAGS)
+termetris: $(OBJ)
+	$(CC) $(LDFLAGS) $^ -o $@ $(NCURSES_LIBS) $(LDLIBS)
 
-termetris.o: ${SRC}
-	$(CC) ${CFLAGS} -c termetris.c
+%.o: %.c
+	$(CC) $(CFLAGS) $(NCURSES_CFLAGS) -c $< -o $@
 
 clean:
-	rm -f ./termetris
-	rm -f ./termetris.o
+	$(RM) termetris $(OBJ)
 
 install: all
-	mkdir -p $(DESTDIR)
-	cp -f termetris $(DESTDIR)
-	chmod 755 $(DESTDIR)/termetris
+	install -d $(DESTDIR)$(BINDIR)
+	install -m 755 termetris $(DESTDIR)$(BINDIR)
 
-.PHONY: clean all install debug
+uninstall:
+	$(RM) $(DESTDIR)$(BINDIR)/termetris
+
+.PHONY: all clean install uninstall
