@@ -110,7 +110,7 @@ static void draw_game_stats(Game *game);
 static void draw_tetromino(WINDOW * win, Tetromino t, int y, int x);
 static void select_block(Game *game, int c, int r, int bn);
 static void place_tetromino(Game * game);
-static void try_spawn(Game *game, Tetromino tetro);
+static int try_spawn(Game *game, Tetromino t);
 static void select_block(Game *game, int c, int r, int i);
 static void move_tetromino(Game *game, int h, int v);
 static void descend_blocks(Game *game, int sr);
@@ -121,7 +121,6 @@ static void show_placed_tetromino(Game *game);
 static void delete_full_rows(Game *game);
 static void resize_handler();
 static void try_rotate(Game *game, int d);
-static void try_spawn(Game *game, Tetromino t);
 static void update_downtime(Game *game);
 static int is_over(Game *game, Tetromino t);
 static int check_move(Game *game, int h, int v);
@@ -199,13 +198,14 @@ void spawn_tetromino(Game *game, Tetromino t, int sp) {
     wrefresh(game->win);
 }
 
-/* Tries to spawn a tetrmono in all positions */
-void try_spawn(Game *game, Tetromino t) {
+/* Tries to spawn a tetromino in all positions. Returns 1 on success, 0 on failure. */
+int try_spawn(Game *game, Tetromino t) {
     for (int i = 0; i < 10; i++ )
         if (can_spawn(game, t, try_pos[i])){
             spawn_tetromino(game, t, try_pos[i]);
-            return;
+            return 1;
         }
+    return 0;
 }
 
 /* Check if the game is over assuming t is the next tetromino */
@@ -249,14 +249,20 @@ void put_on_hold(Game * game) {
     if (game->oh.type != NONE){
         Tetromino tbuf = game->ct;
         delete_tetromino(game);
-        try_spawn(game, game->oh);
+        if (!try_spawn(game, game->oh)) {
+            game->isover = 1;
+            return;
+        }
         game->oh = tbuf;
     /* If there isn't */
     } else {
         game->oh = game->ct;
         game->nt = gentetromino(game->ct);
         delete_tetromino(game);
-        try_spawn(game, game->nt);
+        if (!try_spawn(game, game->nt)) {
+            game->isover = 1;
+            return;
+        }
     }
     game->canhold = 0;
 }
@@ -611,7 +617,7 @@ Menu start_menu(WINDOW * menuwin) {
 
 /* Draws the game over screen */
 void draw_game_over(Game *game){
-    char pointsstr[20], levelstr[15], linesstr[15];  
+    char pointsstr[20], levelstr[20], linesstr[20];  
 
     wattron(game->win, A_BOLD | COLOR_PAIR(11));
     mvwaddstr(game->win, GAME_OVER_ROW(0), GAME_OVER_COL, "Game Over");
@@ -688,6 +694,8 @@ void create_game(Game * game, WINDOW * gwin) {
     tet.inv = rand() % 2;           /* inverted */
     tet.type =  rand() % 5 + 1;     /* type */
     tet.color = 1;
+    for (int i = 0; i < 4; i++)
+        game->selblocks[i].ptr = NULL;
     game->points = 0;
     game->nt = tet;
 }
@@ -699,8 +707,8 @@ void run_game(Game * game) {
     game->groundtimer = clock();
     game->isrunning = 1;
     game->isover = 0;
-    try_spawn(game, game->nt);
-    show_placed_tetromino(game);
+    if (try_spawn(game, game->nt))
+        show_placed_tetromino(game);
     game->nt = gentetromino(game->ct);
     clearwin(game->menuwin);
     draw_game_stats(game);
