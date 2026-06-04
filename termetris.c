@@ -505,15 +505,24 @@ void move_tetromino(Game* game, int h, int v) {
     }
 }
 
+/* Map a block value (0-5) to its COLOR_PAIR index.
+   0 (empty) uses pair 6 (black on black) to avoid modifying the default pair 0. */
+#define BLOCK_PAIR(v) COLOR_PAIR((v) ? (v) : 6)
+
 /* Initializes the color pairs that are going to be used */
 void init_color_pairs() {
     int colors[] = {COLOR_BLACK, COLOR_RED, COLOR_CYAN, COLOR_YELLOW, COLOR_GREEN, COLOR_WHITE};
-    for (int i = 0; i < 6; i++) {
+    /* Skip pair 0 (terminal default) — not portable to modify it. */
+    for (int i = 1; i < 6; i++) {
         /* Pairs for tetris blocks */
         init_pair(i, COLOR_BLACK, colors[i]);
         /* Pairs for text */
         init_pair(10 + i, colors[i], -1);
     }
+    /* Pair 6: invisible (black on black) for empty cells */
+    init_pair(6, COLOR_BLACK, COLOR_BLACK);
+    /* Pair 10: black text (for menu, etc.) */
+    init_pair(10, COLOR_BLACK, -1);
 }
 
 /* Draws a tetromino on a window in certain coordinates */
@@ -535,7 +544,7 @@ void draw_tetromino(WINDOW* win, Tetromino t, int y, int x) {
             for (int i = 0; i <= 1; i++)
                 for (int a = 0; a <= 3; a++)
                     mvwaddch(win, (r * 2 - i) + y, (c * 4 - a) + x,
-                             BOX_CHAR | COLOR_PAIR(blocks[c][r]));
+                             BOX_CHAR | BLOCK_PAIR(blocks[c][r]));
 }
 
 /* Deletes all characters on the window */
@@ -649,7 +658,7 @@ void draw_game_box(Game* game) {
             for (int i = 0; i <= 1; i++)
                 for (int a = 0; a <= 3; a++)
                     mvwaddch(game->win, r * 2 - i, c * 4 - a,
-                             BOX_CHAR | COLOR_PAIR(game->blocks[c][r]));
+                             BOX_CHAR | BLOCK_PAIR(game->blocks[c][r]));
     wrefresh(game->win);
 }
 
@@ -816,7 +825,9 @@ void resize_handler() {
         exit(EXIT_FAILURE);
     }
 
-    /* Not sure why but i have to do this */
+    /* Free the old window before creating a new one */
+    if (menu_window)
+        delwin(menu_window);
     game.menuwin = menu_window = create_menu_window();
 
     clearwin(menu_window);
